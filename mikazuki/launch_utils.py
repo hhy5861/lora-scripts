@@ -11,7 +11,14 @@ from typing import List
 from pathlib import Path
 from typing import Optional
 
-import pkg_resources
+# 使用importlib.metadata替代已弃用的pkg_resources
+try:
+    from importlib.metadata import distributions, version
+    PKG_RESOURCES_AVAILABLE = False
+except ImportError:
+    # 对于Python < 3.8，回退到pkg_resources
+    import pkg_resources
+    PKG_RESOURCES_AVAILABLE = True
 
 from mikazuki.log import log
 
@@ -143,28 +150,84 @@ def is_installed(package, friendly: str = None):
             else:
                 pkg_name, pkg_version = pkg.strip(), None
 
-            spec = pkg_resources.working_set.by_key.get(pkg_name, None)
-            if spec is None:
-                spec = pkg_resources.working_set.by_key.get(pkg_name.lower(), None)
-            if spec is None:
-                spec = pkg_resources.working_set.by_key.get(pkg_name.replace('_', '-'), None)
+            # 使用importlib.metadata或pkg_resources
+            if not PKG_RESOURCES_AVAILABLE:
+                # 使用importlib.metadata (Python 3.8+)
+                try:
+                    installed_version = version(pkg_name)
+                    if installed_version is not None:
+                        if pkg_version is not None:
+                            if '>=' in pkg:
+                                ok = installed_version >= pkg_version
+                            else:
+                                ok = installed_version == pkg_version
 
-            if spec is not None:
-                version = pkg_resources.get_distribution(pkg_name).version
-                # log.debug(f'Package version found: {pkg_name} {version}')
-
-                if pkg_version is not None:
-                    if '>=' in pkg:
-                        ok = version >= pkg_version
+                            if not ok:
+                                log.info(f'Package wrong version: {pkg_name} {installed_version} required {pkg_version}')
+                                return False
                     else:
-                        ok = version == pkg_version
-
-                    if not ok:
-                        log.info(f'Package wrong version: {pkg_name} {version} required {pkg_version}')
+                        log.warning(f'Package version not found: {pkg_name}')
                         return False
+                except Exception:
+                    # 尝试不同的包名变体
+                    try:
+                        installed_version = version(pkg_name.lower())
+                        if installed_version is not None:
+                            if pkg_version is not None:
+                                if '>=' in pkg:
+                                    ok = installed_version >= pkg_version
+                                else:
+                                    ok = installed_version == pkg_version
+
+                                if not ok:
+                                    log.info(f'Package wrong version: {pkg_name} {installed_version} required {pkg_version}')
+                                    return False
+                        else:
+                            log.warning(f'Package version not found: {pkg_name}')
+                            return False
+                    except Exception:
+                        try:
+                            installed_version = version(pkg_name.replace('_', '-'))
+                            if installed_version is not None:
+                                if pkg_version is not None:
+                                    if '>=' in pkg:
+                                        ok = installed_version >= pkg_version
+                                    else:
+                                        ok = installed_version == pkg_version
+
+                                    if not ok:
+                                        log.info(f'Package wrong version: {pkg_name} {installed_version} required {pkg_version}')
+                                        return False
+                            else:
+                                log.warning(f'Package version not found: {pkg_name}')
+                                return False
+                        except Exception:
+                            log.warning(f'Package version not found: {pkg_name}')
+                            return False
             else:
-                log.warning(f'Package version not found: {pkg_name}')
-                return False
+                # 使用pkg_resources (Python < 3.8)
+                spec = pkg_resources.working_set.by_key.get(pkg_name, None)
+                if spec is None:
+                    spec = pkg_resources.working_set.by_key.get(pkg_name.lower(), None)
+                if spec is None:
+                    spec = pkg_resources.working_set.by_key.get(pkg_name.replace('_', '-'), None)
+
+                if spec is not None:
+                    installed_version = pkg_resources.get_distribution(pkg_name).version
+                    # log.debug(f'Package version found: {pkg_name} {installed_version}')
+
+                    if pkg_version is not None:
+                        if '>=' in pkg:
+                            ok = installed_version >= pkg_version
+                        else:
+                            ok = installed_version == pkg_version
+
+                        if not ok:
+                            log.info(f'Package wrong version: {pkg_name} {installed_version} required {pkg_version}')
+                            return False
+                else:
+                    log.warning(f'Package version not found: {pkg_name}')
+                    return False
 
         return True
     except ModuleNotFoundError:
