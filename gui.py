@@ -44,7 +44,18 @@ def run_tag_editor():
     if args.localization:
         cmd.extend(["--localization", args.localization])
     else:
-        l = locale.getdefaultlocale()[0]
+        # 使用推荐的替代方法替代已弃用的getdefaultlocale()
+        try:
+            # Python 3.8+ 推荐方法
+            l = locale.getlocale()[0]
+        except (AttributeError, ValueError):
+            try:
+                # 回退到getencoding()方法
+                l = locale.getencoding()
+            except (AttributeError, ValueError):
+                # 最后的回退方案
+                l = None
+        
         if l and l.startswith("zh"):
             cmd.extend(["--localization", "zh-Hans"])
     subprocess.Popen(cmd)
