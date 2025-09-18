@@ -19,6 +19,7 @@ from multiprocessing import Value
 import time
 from typing import List, Optional, Tuple, Union
 import toml
+import sys
 
 from tqdm import tqdm
 
@@ -51,6 +52,27 @@ from library.config_util import (
 )
 from library.custom_train_functions import apply_masked_loss, add_custom_train_arguments
 
+# 添加metrics支持
+def setup_metrics():
+    """设置Prometheus metrics，如果可用的话"""
+    try:
+        # 添加项目根目录到Python路径
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+        
+        from mikazuki.metrics import (
+            record_training_progress, 
+            record_training_steps, 
+            record_training_epochs, 
+            record_training_loss
+        )
+        return record_training_progress, record_training_steps, record_training_epochs, record_training_loss
+    except ImportError:
+        # 如果metrics模块不可用，返回空函数
+        def noop(*args, **kwargs):
+            pass
+        return noop, noop, noop, noop
 
 def train(args):
     train_util.verify_training_args(args)
@@ -58,6 +80,13 @@ def train(args):
     # sdxl_train_util.verify_sdxl_training_args(args)
     deepspeed_utils.prepare_deepspeed_args(args)
     setup_logging(args, reset=True)
+    
+    # 设置metrics
+    record_training_progress, record_training_steps, record_training_epochs, record_training_loss = setup_metrics()
+    
+    # 获取task_id用于metrics
+    task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
+    model_type = 'flux-finetune'
 
     # temporary: backward compatibility for deprecated options. remove in the future
     if not args.skip_cache_check:
@@ -583,6 +612,11 @@ def train(args):
     for epoch in range(num_train_epochs):
         accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
+        
+        # 记录epoch进度metrics
+        record_training_epochs(model_type, task_id, epoch, num_train_epochs)
+        epoch_progress_percent = ((epoch + 1) / num_train_epochs) * 100
+        record_training_progress(model_type, task_id, 'epoch_based', epoch_progress_percent)
 
         for m in training_models:
             m.train()
@@ -703,6 +737,11 @@ def train(args):
             if accelerator.sync_gradients:
                 progress_bar.update(1)
                 global_step += 1
+                
+                # 记录步数进度metrics
+                record_training_steps(model_type, task_id, global_step, args.max_train_steps)
+                step_progress_percent = (global_step / args.max_train_steps) * 100
+                record_training_progress(model_type, task_id, 'step_based', step_progress_percent)
 
                 optimizer_eval_fn()
                 flux_train_utils.sample_images(
@@ -736,6 +775,9 @@ def train(args):
             avr_loss: float = loss_recorder.moving_average
             logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
             progress_bar.set_postfix(**logs)
+            
+            # 记录损失值metrics
+            record_training_loss(model_type, task_id, current_loss, avr_loss)
 
             if global_step >= args.max_train_steps:
                 break

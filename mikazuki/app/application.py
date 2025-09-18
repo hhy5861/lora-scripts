@@ -7,9 +7,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
+from prometheus_client import CONTENT_TYPE_LATEST
 
 from mikazuki.app.config import app_config
 from mikazuki.app.api import load_schemas, load_presets
@@ -17,6 +18,7 @@ from mikazuki.app.api import router as api_router
 # from mikazuki.app.ipc import router as ipc_router
 from mikazuki.app.proxy import router as proxy_router
 from mikazuki.utils.devices import check_torch_gpu
+from mikazuki.metrics import get_metrics
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
@@ -87,5 +89,11 @@ async def index():
 @app.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
     return FileResponse("assets/favicon.ico")
+
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return Response(get_metrics(), media_type=CONTENT_TYPE_LATEST)
 
 app.mount("/", SPAStaticFiles(directory="frontend/dist", html=True), name="static")

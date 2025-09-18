@@ -9,6 +9,7 @@ from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError, Complete
 import psutil
 
 from mikazuki.log import log
+from mikazuki.metrics import record_training_running
 
 try:
     import msvcrt
@@ -37,12 +38,13 @@ class TaskStatus(Enum):
 
 
 class Task:
-    def __init__(self, task_id, command, environ=None):
+    def __init__(self, task_id, command, environ=None, model_type="unknown"):
         self.task_id = task_id
         self.lock = threading.Lock()
         self.command = command
         self.status = TaskStatus.CREATED
         self.environ = environ or os.environ
+        self.model_type = model_type
 
     def communicate(self, input=None, timeout=None):
         try:
@@ -68,6 +70,8 @@ class Task:
     def execute(self):
         self.status = TaskStatus.RUNNING
         self.process = subprocess.Popen(self.command, env=self.environ)
+        # 记录训练进行中metrics
+        record_training_running(self.model_type, self.task_id)
 
     def terminate(self):
         try:
@@ -84,14 +88,14 @@ class TaskManager:
         self.max_concurrent = max_concurrent
         self.tasks: Dict[Task] = {}
 
-    def create_task(self, command: List[str], environ):
+    def create_task(self, command: List[str], environ, model_type="unknown"):
         running_tasks = [t for _, t in self.tasks.items() if t.status == TaskStatus.RUNNING]
         if len(running_tasks) >= self.max_concurrent:
             log.error(
                 f"Unable to create a task because there are already {len(running_tasks)} tasks running, reaching the maximum concurrent limit. / 无法创建任务，因为已经有 {len(running_tasks)} 个任务正在运行，已达到最大并发限制。")
             return None
         task_id = str(uuid.uuid4())
-        task = Task(task_id=task_id, command=command, environ=environ)
+        task = Task(task_id=task_id, command=command, environ=environ, model_type=model_type)
         self.tasks[task_id] = task
         # task.execute() # breaking change
         log.info(f"Task {task_id} created")
