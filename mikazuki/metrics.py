@@ -7,13 +7,13 @@ from typing import Optional
 # 创建自定义registry
 registry = CollectorRegistry()
 
-# 1. 训练状态计数器 (Counter)
-flux_training_total = Counter(
-    'flux_training_total', 
-    'Total number of flux training operations',
-    ['status', 'model_type', 'task_id'],
-    registry=registry
-)
+# 1. 训练状态计数器 (Counter) - 移除，不需要
+# flux_training_total = Counter(
+#     'flux_training_total', 
+#     'Total number of flux training operations',
+#     ['status', 'model_type', 'task_id'],
+#     registry=registry
+# )
 
 # 2. 当前训练状态 (Gauge)
 flux_training_status = Gauge(
@@ -55,20 +55,20 @@ flux_training_loss = Gauge(
     registry=registry
 )
 
-# 7. 训练持续时间 (Histogram)
+# 7. 训练持续时间 (Histogram) - 恢复task_id标签
 flux_training_duration_seconds = Histogram(
     'flux_training_duration_seconds',
     'Duration of flux training operations in seconds',
-    ['model_type', 'status'],
+    ['model_type', 'status', 'task_id'],
     buckets=[60, 300, 600, 1800, 3600, 7200, 14400, 28800],  # 1min to 8hours
     registry=registry
 )
 
-# 8. 训练错误计数器 (Counter)
+# 8. 训练错误计数器 (Counter) - 恢复task_id标签
 flux_training_errors_total = Counter(
     'flux_training_errors_total',
     'Total number of flux training errors',
-    ['error_type', 'model_type'],
+    ['error_type', 'model_type', 'task_id'],
     registry=registry
 )
 
@@ -88,12 +88,6 @@ def record_training_start(model_type: str, task_id: str):
     """记录训练开始"""
     import time
     
-    flux_training_total.labels(
-        status='started', 
-        model_type=model_type, 
-        task_id=task_id
-    ).inc()
-    
     flux_training_status.labels(
         model_type=model_type, 
         task_id=task_id
@@ -106,12 +100,6 @@ def record_training_start(model_type: str, task_id: str):
 
 def record_training_running(model_type: str, task_id: str):
     """记录训练进行中"""
-    flux_training_total.labels(
-        status='running', 
-        model_type=model_type, 
-        task_id=task_id
-    ).inc()
-    
     flux_training_status.labels(
         model_type=model_type, 
         task_id=task_id
@@ -120,12 +108,6 @@ def record_training_running(model_type: str, task_id: str):
 def record_training_completed(model_type: str, task_id: str):
     """记录训练完成"""
     import time
-    
-    flux_training_total.labels(
-        status='completed', 
-        model_type=model_type, 
-        task_id=task_id
-    ).inc()
     
     flux_training_status.labels(
         model_type=model_type, 
@@ -142,18 +124,13 @@ def record_training_completed(model_type: str, task_id: str):
         duration = time.time() - start_time
         flux_training_duration_seconds.labels(
             model_type=model_type, 
-            status='completed'
+            status='completed',
+            task_id=task_id
         ).observe(duration)
 
 def record_training_failed(model_type: str, task_id: str, error_type: str = 'unknown'):
     """记录训练失败"""
     import time
-    
-    flux_training_total.labels(
-        status='failed', 
-        model_type=model_type, 
-        task_id=task_id
-    ).inc()
     
     flux_training_status.labels(
         model_type=model_type, 
@@ -162,7 +139,8 @@ def record_training_failed(model_type: str, task_id: str, error_type: str = 'unk
     
     flux_training_errors_total.labels(
         error_type=error_type, 
-        model_type=model_type
+        model_type=model_type,
+        task_id=task_id
     ).inc()
     
     # 计算训练持续时间
@@ -175,7 +153,8 @@ def record_training_failed(model_type: str, task_id: str, error_type: str = 'unk
         duration = time.time() - start_time
         flux_training_duration_seconds.labels(
             model_type=model_type, 
-            status='failed'
+            status='failed',
+            task_id=task_id
         ).observe(duration)
 
 def record_training_progress(model_type: str, task_id: str, progress_type: str, percent: float):
