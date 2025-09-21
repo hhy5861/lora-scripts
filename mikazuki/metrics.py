@@ -94,9 +94,16 @@ def record_training_completed(model_type: str, task_id: str):
     ).set(2)  # completed
     
     # 训练完成后立即清理
-    cleanup_config = app_config.get("cleanup_config", {})
-    delay_seconds = cleanup_config.get("cleanup_delay_seconds", 300)
-    if cleanup_config.get("enable_immediate_cleanup", True):
+    try:
+        cleanup_config = app_config.get("cleanup_config", {})
+        delay_seconds = cleanup_config.get("cleanup_delay_seconds", 300)
+        enable_cleanup = cleanup_config.get("enable_immediate_cleanup", True)
+    except Exception:
+        # 如果无法访问配置，使用默认值
+        delay_seconds = 300
+        enable_cleanup = True
+    
+    if enable_cleanup:
         schedule_cleanup(task_id, delay_seconds=delay_seconds)
 
 def record_training_failed(model_type: str, task_id: str, error_type: str = 'unknown'):
@@ -107,9 +114,16 @@ def record_training_failed(model_type: str, task_id: str, error_type: str = 'unk
     ).set(3)  # failed
     
     # 训练失败后立即清理
-    cleanup_config = app_config.get("cleanup_config", {})
-    delay_seconds = cleanup_config.get("cleanup_delay_seconds", 300)
-    if cleanup_config.get("enable_immediate_cleanup", True):
+    try:
+        cleanup_config = app_config.get("cleanup_config", {})
+        delay_seconds = cleanup_config.get("cleanup_delay_seconds", 300)
+        enable_cleanup = cleanup_config.get("enable_immediate_cleanup", True)
+    except Exception:
+        # 如果无法访问配置，使用默认值
+        delay_seconds = 300
+        enable_cleanup = True
+    
+    if enable_cleanup:
         schedule_cleanup(task_id, delay_seconds=delay_seconds)
 
 def record_training_progress(model_type: str, task_id: str, progress_type: str, percent: float):
@@ -187,9 +201,13 @@ def cleanup_task_metrics(task_id: str):
 
 def cleanup_old_metrics(max_age_hours: int = None):
     """清理超过指定时间的旧指标"""
-    cleanup_config = app_config.get("cleanup_config", {})
-    if max_age_hours is None:
-        max_age_hours = cleanup_config.get("max_age_hours", 24)
+    try:
+        cleanup_config = app_config.get("cleanup_config", {})
+        if max_age_hours is None:
+            max_age_hours = cleanup_config.get("max_age_hours", 24)
+    except Exception:
+        # 如果无法访问配置，使用默认值
+        max_age_hours = max_age_hours or 24
     
     current_time = time.time()
     max_age_seconds = max_age_hours * 3600
@@ -210,8 +228,13 @@ def start_cleanup_scheduler():
     """启动定期清理任务"""
     def cleanup_loop():
         while True:
-            cleanup_config = app_config.get("cleanup_config", {})
-            interval_seconds = cleanup_config.get("cleanup_interval_seconds", 3600)
+            try:
+                cleanup_config = app_config.get("cleanup_config", {})
+                interval_seconds = cleanup_config.get("cleanup_interval_seconds", 3600)
+            except Exception:
+                # 如果无法访问配置，使用默认值
+                interval_seconds = 3600
+            
             time.sleep(interval_seconds)
             cleanup_old_metrics()
     
