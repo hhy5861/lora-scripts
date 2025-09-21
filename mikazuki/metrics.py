@@ -5,7 +5,11 @@ from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry, gene
 from typing import Optional, Dict, Set
 import time
 import threading
-from mikazuki.app.config import app_config
+
+# 清理配置常量
+CLEANUP_DELAY_SECONDS = 300      # 训练完成后延迟清理时间（5分钟）
+CLEANUP_INTERVAL_SECONDS = 3600  # 定期清理间隔（1小时）
+MAX_AGE_HOURS = 24               # 最大保留时间（24小时）
 
 # 创建自定义registry
 registry = CollectorRegistry()
@@ -94,17 +98,7 @@ def record_training_completed(model_type: str, task_id: str):
     ).set(2)  # completed
     
     # 训练完成后立即清理
-    try:
-        cleanup_config = app_config.get("cleanup_config", {})
-        delay_seconds = cleanup_config.get("cleanup_delay_seconds", 300)
-        enable_cleanup = cleanup_config.get("enable_immediate_cleanup", True)
-    except Exception:
-        # 如果无法访问配置，使用默认值
-        delay_seconds = 300
-        enable_cleanup = True
-    
-    if enable_cleanup:
-        schedule_cleanup(task_id, delay_seconds=delay_seconds)
+    schedule_cleanup(task_id, delay_seconds=CLEANUP_DELAY_SECONDS)
 
 def record_training_failed(model_type: str, task_id: str, error_type: str = 'unknown'):
     """记录训练失败"""
@@ -114,17 +108,7 @@ def record_training_failed(model_type: str, task_id: str, error_type: str = 'unk
     ).set(3)  # failed
     
     # 训练失败后立即清理
-    try:
-        cleanup_config = app_config.get("cleanup_config", {})
-        delay_seconds = cleanup_config.get("cleanup_delay_seconds", 300)
-        enable_cleanup = cleanup_config.get("enable_immediate_cleanup", True)
-    except Exception:
-        # 如果无法访问配置，使用默认值
-        delay_seconds = 300
-        enable_cleanup = True
-    
-    if enable_cleanup:
-        schedule_cleanup(task_id, delay_seconds=delay_seconds)
+    schedule_cleanup(task_id, delay_seconds=CLEANUP_DELAY_SECONDS)
 
 def record_training_progress(model_type: str, task_id: str, progress_type: str, percent: float):
     """记录训练进度"""
@@ -201,13 +185,8 @@ def cleanup_task_metrics(task_id: str):
 
 def cleanup_old_metrics(max_age_hours: int = None):
     """清理超过指定时间的旧指标"""
-    try:
-        cleanup_config = app_config.get("cleanup_config", {})
-        if max_age_hours is None:
-            max_age_hours = cleanup_config.get("max_age_hours", 24)
-    except Exception:
-        # 如果无法访问配置，使用默认值
-        max_age_hours = max_age_hours or 24
+    if max_age_hours is None:
+        max_age_hours = MAX_AGE_HOURS
     
     current_time = time.time()
     max_age_seconds = max_age_hours * 3600
@@ -228,14 +207,7 @@ def start_cleanup_scheduler():
     """启动定期清理任务"""
     def cleanup_loop():
         while True:
-            try:
-                cleanup_config = app_config.get("cleanup_config", {})
-                interval_seconds = cleanup_config.get("cleanup_interval_seconds", 3600)
-            except Exception:
-                # 如果无法访问配置，使用默认值
-                interval_seconds = 3600
-            
-            time.sleep(interval_seconds)
+            time.sleep(CLEANUP_INTERVAL_SECONDS)
             cleanup_old_metrics()
     
     thread = threading.Thread(target=cleanup_loop, daemon=True)
