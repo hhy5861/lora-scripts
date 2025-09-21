@@ -10,7 +10,13 @@ class Config:
         self._stored = {}
         self._default = {
             "last_path": "",
-            "saved_params": {}
+            "saved_params": {},
+            "cleanup_config": {
+                "max_age_hours": 24,                    # 最大保留时间
+                "cleanup_delay_seconds": 300,           # 训练完成后延迟清理时间
+                "cleanup_interval_seconds": 3600,       # 定期清理间隔
+                "enable_immediate_cleanup": True,       # 是否启用立即清理
+            }
         }
         self.lock = False
 
