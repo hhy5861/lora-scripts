@@ -1534,9 +1534,19 @@ class NetworkTrainer:
                 logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
                 progress_bar.set_postfix(**{**max_mean_logs, **logs})
                 
-                # 记录损失值metrics
+                # 记录所有metrics - 直接使用进度条已有的值
+                if callable(self.record_training_steps) and callable(self.record_training_progress):
+                    try:
+                        # 步数进度
+                        self.record_training_steps(self.model_type_name, self.task_id, progress_bar.n, progress_bar.total)
+                        step_progress_percent = (progress_bar.n / progress_bar.total) * 100
+                        self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
+                    except (AttributeError, TypeError):
+                        pass
+                
                 if callable(self.record_training_loss):
                     try:
+                        # 损失值
                         self.record_training_loss(self.model_type_name, self.task_id, current_loss, avr_loss)
                     except (AttributeError, TypeError):
                         pass
