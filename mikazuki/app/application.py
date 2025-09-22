@@ -131,10 +131,10 @@ async def update_metrics(data: dict):
             record_training_progress(model_type, task_id, 'step_based', progress['percent'])
             print(f"[DEBUG] Recorded progress: {progress['percent']}%")
             
-                # 记录损失值
-                if 'average' in loss:
-                    record_training_loss(model_type, task_id, loss['average'])
-                    print(f"[DEBUG] Recorded loss: avg={loss['average']}")
+        # 记录损失值
+        if 'average' in loss:
+            record_training_loss(model_type, task_id, loss['average'])
+            print(f"[DEBUG] Recorded loss: avg={loss['average']}")
             
         # 记录迭代时间
         if 'iteration_time' in data:
