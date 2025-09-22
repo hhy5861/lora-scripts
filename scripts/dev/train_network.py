@@ -1525,7 +1525,6 @@ class NetworkTrainer:
                 if accelerator.is_main_process:
                     try:
                         import requests
-                        import time
                         
                         # 计算迭代时间（从进度条获取）
                         if hasattr(progress_bar, 'format_dict') and 'rate' in progress_bar.format_dict:
