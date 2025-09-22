@@ -18,7 +18,14 @@ from mikazuki.app.api import router as api_router
 # from mikazuki.app.ipc import router as ipc_router
 from mikazuki.app.proxy import router as proxy_router
 from mikazuki.utils.devices import check_torch_gpu
-from mikazuki.metrics import get_metrics
+from mikazuki.metrics import (
+    get_metrics,
+    record_training_progress,
+    record_training_steps,
+    record_training_loss,
+    record_training_iteration_time,
+    record_training_remaining_time
+)
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
@@ -101,12 +108,6 @@ async def metrics():
 async def update_metrics(data: dict):
     """接收训练脚本发送的metrics数据"""
     try:
-        from mikazuki.metrics import (
-            record_training_progress,
-            record_training_steps, 
-            record_training_loss,
-            record_training_iteration_time
-        )
         
         model_type = data.get('model_type', 'unknown')
         task_id = data.get('task_id', 'unknown')
@@ -128,6 +129,11 @@ async def update_metrics(data: dict):
         # 记录迭代时间
         if 'iteration_time' in data:
             record_training_iteration_time(model_type, data['iteration_time'])
+            
+        # 记录剩余时间
+        if 'remaining_time' in data:
+            record_training_remaining_time(model_type, data['remaining_time'])
+            
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "message": str(e)}

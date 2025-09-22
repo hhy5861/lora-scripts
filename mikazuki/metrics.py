@@ -46,6 +46,14 @@ flux_training_iteration_time = Gauge(
     registry=registry
 )
 
+# 6. 训练剩余时间 (Gauge)
+flux_training_remaining_time = Gauge(
+    'flux_training_remaining_time',
+    'Estimated remaining training time in seconds',
+    ['model_type'],
+    registry=registry
+)
+
 
 def get_metrics() -> str:
     """获取Prometheus格式的metrics数据"""
@@ -105,4 +113,10 @@ def record_training_iteration_time(model_type: str, iteration_time: float):
     flux_training_iteration_time.labels(
         model_type=model_type
     ).set(iteration_time)
+
+def record_training_remaining_time(model_type: str, remaining_time: float):
+    """记录训练剩余时间"""
+    flux_training_remaining_time.labels(
+        model_type=model_type
+    ).set(remaining_time)
 

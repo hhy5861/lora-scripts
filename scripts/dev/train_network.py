@@ -1507,13 +1507,20 @@ class NetworkTrainer:
                     try:
                         import requests
                         
-                        # 从进度条获取迭代时间
+                        # 从进度条获取迭代时间和剩余时间
                         iteration_time = 0
-                        if hasattr(progress_bar, 'format_dict') and 'elapsed' in progress_bar.format_dict and 'n' in progress_bar.format_dict:
-                            elapsed = progress_bar.format_dict['elapsed']
-                            n = progress_bar.format_dict['n']
-                            if n > 0 and elapsed > 0:
-                                iteration_time = elapsed / n
+                        remaining_time = 0
+                        if hasattr(progress_bar, 'format_dict'):
+                            format_dict = progress_bar.format_dict
+                            # 计算迭代时间
+                            if 'elapsed' in format_dict and 'n' in format_dict:
+                                elapsed = format_dict['elapsed']
+                                n = format_dict['n']
+                                if n > 0 and elapsed > 0:
+                                    iteration_time = elapsed / n
+                            # 获取剩余时间
+                            if 'remaining' in format_dict:
+                                remaining_time = format_dict['remaining']
                         
                         # 准备统一的metrics数据
                         metrics_data = {
@@ -1527,7 +1534,8 @@ class NetworkTrainer:
                             'loss': {
                                 'average': avr_loss
                             },
-                            'iteration_time': iteration_time
+                            'iteration_time': iteration_time,
+                            'remaining_time': remaining_time
                         }
                         
                         # 统一发送所有metrics数据
