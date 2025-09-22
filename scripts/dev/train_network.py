@@ -1494,8 +1494,15 @@ class NetworkTrainer:
 
                 # Checks if the accelerator has performed an optimization step behind the scenes
                 if accelerator.sync_gradients:
+                    # 调试日志 - 进度条更新前
+                    print(f"[DEBUG] Before progress_bar.update(1): progress={progress_bar.n}/{progress_bar.total}")
+                    print(f"[DEBUG] model_type_name={self.model_type_name}, task_id={self.task_id}")
+                    
                     progress_bar.update(1)
                     global_step += 1
+                    
+                    # 调试日志 - 进度条更新后
+                    print(f"[DEBUG] After progress_bar.update(1): progress={progress_bar.n}/{progress_bar.total}")
                     
                     # 记录步数进度metrics
                     if callable(self.record_training_steps) and callable(self.record_training_progress):
@@ -1533,9 +1540,6 @@ class NetworkTrainer:
                 avr_loss: float = loss_recorder.moving_average
                 logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
                 
-                # 调试日志 - 进度条输出前
-                print(f"[DEBUG] Before progress_bar.set_postfix: progress={progress_bar.n}/{progress_bar.total}, avr_loss={avr_loss}")
-                print(f"[DEBUG] model_type_name={self.model_type_name}, task_id={self.task_id}")
                 
                 progress_bar.set_postfix(**{**max_mean_logs, **logs})
                 
