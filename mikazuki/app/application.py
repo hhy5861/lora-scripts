@@ -18,7 +18,7 @@ from mikazuki.app.api import router as api_router
 # from mikazuki.app.ipc import router as ipc_router
 from mikazuki.app.proxy import router as proxy_router
 from mikazuki.utils.devices import check_torch_gpu
-from mikazuki.metrics import get_metrics, start_cleanup_scheduler
+from mikazuki.metrics import get_metrics
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
@@ -42,8 +42,6 @@ async def app_startup():
     await load_presets()
     await asyncio.to_thread(check_torch_gpu)
     
-    # 启动定期清理任务
-    start_cleanup_scheduler()
 
     if sys.platform == "win32" and os.environ.get("MIKAZUKI_DEV", "0") != "1":
         webbrowser.open(f'http://{os.environ["MIKAZUKI_HOST"]}:{os.environ["MIKAZUKI_PORT"]}')
