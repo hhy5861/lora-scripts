@@ -1511,16 +1511,10 @@ class NetworkTrainer:
                 
                 progress_bar.set_postfix(**{**max_mean_logs, **logs})
                 
-                # 调试日志 - 进度条输出后
-                print(f"[DEBUG] After progress_bar.set_postfix: progress={progress_bar.n}/{progress_bar.total}")
-                
                 # 统一发送所有metrics数据 - 只在主进程上发送
                 if accelerator.is_main_process:
                     try:
                         import requests
-                        
-                        # 调试 progress_bar 对象
-                        print(f"[DEBUG] progress_bar.format_dict: {progress_bar.format_dict}")
                         
                         # 从进度条获取迭代时间
                         iteration_time = 0
@@ -1545,29 +1539,18 @@ class NetworkTrainer:
                             'iteration_time': iteration_time
                         }
                         
-                        # epoch数据已删除
-                        
-                        # 调试信息
-                        print(f"[DEBUG] Sending unified metrics: {metrics_data}")
-                        
                         # 统一发送所有metrics数据
                         try:
                             response = requests.post('http://127.0.0.1:28000/update_metrics', 
-                                                   json=metrics_data, 
-                                                   timeout=1)
-                            if response.status_code == 200:
-                                print(f"[DEBUG] Unified metrics sent successfully")
-                            else:
-                                print(f"[DEBUG] Unified metrics send failed: {response.status_code}")
+                                                  json=metrics_data, 
+                                                  timeout=1)
                         except Exception as e:
-                            print(f"[DEBUG] Unified metrics send error: {e}")
+                            pass
                             
                     except ImportError:
-                        print(f"[DEBUG] requests module not available, skipping metrics")
+                        pass
                     except Exception as e:
-                        print(f"[DEBUG] Unified metrics error: {e}")
-                else:
-                    print(f"[DEBUG] Non-main process, skipping metrics")
+                        pass
                 
                 # 损失值已通过HTTP发送到主进程记录
 

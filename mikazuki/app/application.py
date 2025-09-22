@@ -103,8 +103,6 @@ async def metrics():
 async def update_metrics(data: dict):
     """接收训练脚本发送的metrics数据"""
     try:
-        print(f"[DEBUG] Received metrics data: {data}")
-        
         from mikazuki.metrics import (
             record_training_progress,
             record_training_steps, 
@@ -117,34 +115,23 @@ async def update_metrics(data: dict):
         progress = data.get('progress', {})
         loss = data.get('loss', {})
         
-        print(f"[DEBUG] Processing metrics: model_type={model_type}, task_id={task_id}")
-        print(f"[DEBUG] Progress: {progress}")
-        print(f"[DEBUG] Loss: {loss}")
-        
         # 记录步数进度
         if 'current' in progress and 'total' in progress:
             record_training_steps(model_type, task_id, progress['current'], progress['total'])
-            print(f"[DEBUG] Recorded steps: {progress['current']}/{progress['total']}")
             
         # 记录进度百分比
         if 'percent' in progress:
             record_training_progress(model_type, task_id, 'step_based', progress['percent'])
-            print(f"[DEBUG] Recorded progress: {progress['percent']}%")
             
         # 记录损失值
         if 'average' in loss:
             record_training_loss(model_type, task_id, loss['average'])
-            print(f"[DEBUG] Recorded loss: avg={loss['average']}")
             
         # 记录迭代时间
         if 'iteration_time' in data:
             record_training_iteration_time(model_type, task_id, data['iteration_time'])
-            print(f"[DEBUG] Recorded iteration time: {data['iteration_time']}s")
-            
-        print(f"[DEBUG] Metrics recorded successfully")
         return {"status": "success"}
     except Exception as e:
-        print(f"[DEBUG] Metrics error: {e}")
         return {"status": "error", "message": str(e)}
 
 # 统一的 update_metrics 端点已处理所有类型的 metrics 数据
