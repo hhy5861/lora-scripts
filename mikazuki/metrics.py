@@ -51,13 +51,7 @@ flux_training_steps = Gauge(
     registry=registry
 )
 
-# 5. 训练epoch进度 (Gauge)
-flux_training_epochs = Gauge(
-    'flux_training_epochs',
-    'Current training epoch progress',
-    ['model_type', 'task_id', 'epoch_type'],
-    registry=registry
-)
+# 5. 训练epoch进度已删除
 
 # 6. 训练损失值 (Gauge)
 flux_training_loss = Gauge(
@@ -139,19 +133,7 @@ def record_training_steps(model_type: str, task_id: str, current_steps: int, tot
         step_type='total'
     ).set(total_steps)
 
-def record_training_epochs(model_type: str, task_id: str, current_epoch: int, total_epochs: int):
-    """记录训练epoch"""
-    flux_training_epochs.labels(
-        model_type=model_type,
-        task_id=task_id,
-        epoch_type='current'
-    ).set(current_epoch)
-    
-    flux_training_epochs.labels(
-        model_type=model_type,
-        task_id=task_id,
-        epoch_type='total'
-    ).set(total_epochs)
+# record_training_epochs 函数已删除
 
 def record_training_loss(model_type: str, task_id: str, current_loss: float, avg_loss: Optional[float] = None):
     """记录训练损失"""

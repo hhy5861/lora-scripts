@@ -108,7 +108,6 @@ async def update_metrics(data: dict):
         from mikazuki.metrics import (
             record_training_progress,
             record_training_steps, 
-            record_training_epochs,
             record_training_loss,
             record_training_iteration_time
         )
@@ -117,12 +116,10 @@ async def update_metrics(data: dict):
         task_id = data.get('task_id', 'unknown')
         progress = data.get('progress', {})
         loss = data.get('loss', {})
-        epoch = data.get('epoch', {})
         
         print(f"[DEBUG] Processing metrics: model_type={model_type}, task_id={task_id}")
         print(f"[DEBUG] Progress: {progress}")
         print(f"[DEBUG] Loss: {loss}")
-        print(f"[DEBUG] Epoch: {epoch}")
         
         # 记录步数进度
         if 'current' in progress and 'total' in progress:
@@ -131,14 +128,8 @@ async def update_metrics(data: dict):
             
         # 记录进度百分比
         if 'percent' in progress:
-            progress_type = 'step_based' if 'current' in progress else 'epoch_based'
-            record_training_progress(model_type, task_id, progress_type, progress['percent'])
-            print(f"[DEBUG] Recorded progress: {progress['percent']}% ({progress_type})")
-            
-        # 记录epoch进度
-        if 'current' in epoch and 'total' in epoch:
-            record_training_epochs(model_type, task_id, epoch['current'], epoch['total'])
-            print(f"[DEBUG] Recorded epochs: {epoch['current']}/{epoch['total']}")
+            record_training_progress(model_type, task_id, 'step_based', progress['percent'])
+            print(f"[DEBUG] Recorded progress: {progress['percent']}%")
             
         # 记录损失值
         if 'current' in loss and 'average' in loss:

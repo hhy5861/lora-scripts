@@ -1385,14 +1385,7 @@ class NetworkTrainer:
             accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}\n")
             current_epoch.value = epoch + 1
             
-            # 记录epoch进度 - 只设置数据，不发送
-            if accelerator.is_main_process:
-                # 将epoch数据存储到实例变量中，等待统一发送
-                self.current_epoch_data = {
-                    'current': epoch,
-                    'total': num_train_epochs,
-                    'percent': ((epoch + 1) / num_train_epochs) * 100
-                }
+            # epoch进度已删除
 
             metadata["ss_epoch"] = str(epoch + 1)
 
@@ -1526,12 +1519,14 @@ class NetworkTrainer:
                     try:
                         import requests
                         
-                        # 计算迭代时间（从进度条获取）
+                        # 从进度条格式化字符串中提取迭代时间
+                        # 进度条格式: steps: 9%|▊ | 3/35 [02:23<25:34, 47.96s/it, avr_loss=0.225]
+                        iteration_time = 0
                         if hasattr(progress_bar, 'format_dict') and 'rate' in progress_bar.format_dict and progress_bar.format_dict['rate'] is not None:
+                            # tqdm 的 rate 就是每秒处理的步数，取倒数就是每步的时间
                             rate = progress_bar.format_dict['rate']
-                            iteration_time = 1.0 / rate if rate > 0 else 0
-                        else:
-                            iteration_time = 0
+                            if rate > 0:
+                                iteration_time = 1.0 / rate
                         
                         # 准备统一的metrics数据
                         metrics_data = {
@@ -1549,9 +1544,7 @@ class NetworkTrainer:
                             'iteration_time': iteration_time
                         }
                         
-                        # 添加epoch数据（如果存在）
-                        if hasattr(self, 'current_epoch_data'):
-                            metrics_data['epoch'] = self.current_epoch_data
+                        # epoch数据已删除
                         
                         # 调试信息
                         print(f"[DEBUG] Sending unified metrics: {metrics_data}")
