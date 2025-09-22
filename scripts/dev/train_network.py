@@ -1406,9 +1406,9 @@ class NetworkTrainer:
             # 记录epoch进度metrics
             if callable(self.record_training_epochs) and callable(self.record_training_progress):
                 try:
-                    record_training_epochs(self.model_type_name, self.task_id, epoch, num_train_epochs)
+                    self.record_training_epochs(self.model_type_name, self.task_id, epoch, num_train_epochs)
                     epoch_progress_percent = ((epoch + 1) / num_train_epochs) * 100
-                    record_training_progress(self.model_type_name, self.task_id, 'epoch_based', epoch_progress_percent)
+                    self.record_training_progress(self.model_type_name, self.task_id, 'epoch_based', epoch_progress_percent)
                 except (AttributeError, TypeError):
                     pass
 
@@ -1500,9 +1500,9 @@ class NetworkTrainer:
                     # 记录步数进度metrics
                     if callable(self.record_training_steps) and callable(self.record_training_progress):
                         try:
-                            record_training_steps(self.model_type_name, self.task_id, global_step, args.max_train_steps)
+                            self.record_training_steps(self.model_type_name, self.task_id, global_step, args.max_train_steps)
                             step_progress_percent = (progress_bar.n / progress_bar.total) * 100
-                            record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
+                            self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
                         except (AttributeError, TypeError):
                             pass
 
@@ -1537,7 +1537,7 @@ class NetworkTrainer:
                 # 记录损失值metrics
                 if callable(self.record_training_loss):
                     try:
-                        record_training_loss(self.model_type_name, self.task_id, current_loss, avr_loss)
+                        self.record_training_loss(self.model_type_name, self.task_id, current_loss, avr_loss)
                     except (AttributeError, TypeError):
                         pass
 
