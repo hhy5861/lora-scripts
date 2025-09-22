@@ -1532,16 +1532,27 @@ class NetworkTrainer:
                 loss_recorder.add(epoch=epoch, step=step, loss=current_loss)
                 avr_loss: float = loss_recorder.moving_average
                 logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+                
+                # 调试日志 - 进度条输出前
+                print(f"[DEBUG] Before progress_bar.set_postfix: progress={progress_bar.n}/{progress_bar.total}, avr_loss={avr_loss}")
+                print(f"[DEBUG] model_type_name={self.model_type_name}, task_id={self.task_id}")
+                
                 progress_bar.set_postfix(**{**max_mean_logs, **logs})
+                
+                # 调试日志 - 进度条输出后
+                print(f"[DEBUG] After progress_bar.set_postfix: progress={progress_bar.n}/{progress_bar.total}")
                 
                 # 记录所有metrics - 直接使用进度条已有的值
                 if callable(self.record_training_steps) and callable(self.record_training_progress):
                     try:
+                        print(f"[DEBUG] Recording metrics: model_type={self.model_type_name}, task_id={self.task_id}, progress={progress_bar.n}/{progress_bar.total}")
                         # 步数进度
                         self.record_training_steps(self.model_type_name, self.task_id, progress_bar.n, progress_bar.total)
                         step_progress_percent = (progress_bar.n / progress_bar.total) * 100
                         self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
-                    except (AttributeError, TypeError):
+                        print(f"[DEBUG] Metrics recorded successfully")
+                    except (AttributeError, TypeError) as e:
+                        print(f"[DEBUG] Metrics recording error: {e}")
                         pass
                 
                 if callable(self.record_training_loss):
