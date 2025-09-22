@@ -1529,8 +1529,11 @@ class NetworkTrainer:
                         
                         # 从进度条获取迭代时间
                         iteration_time = 0
-                        if hasattr(progress_bar, 'format_dict') and 'elapsed' in progress_bar.format_dict:
-                            iteration_time = progress_bar.format_dict['elapsed']
+                        if hasattr(progress_bar, 'format_dict') and 'elapsed' in progress_bar.format_dict and 'n' in progress_bar.format_dict:
+                            elapsed = progress_bar.format_dict['elapsed']
+                            n = progress_bar.format_dict['n']
+                            if n > 0 and elapsed > 0:
+                                iteration_time = elapsed / n
                         
                         # 准备统一的metrics数据
                         metrics_data = {
