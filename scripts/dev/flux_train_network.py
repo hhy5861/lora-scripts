@@ -58,8 +58,7 @@ class FluxNetworkTrainer(train_network.NetworkTrainer):
         self.is_swapping_blocks: bool = False
         self.model_type: Optional[str] = None
         
-        # 设置metrics
-        self.record_training_progress, self.record_training_steps, self.record_training_epochs, self.record_training_loss = setup_metrics()
+        # 设置metrics - 使用父类的metrics函数，确保使用相同的registry
         self.task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
         self.model_type_name = 'flux-lora'  # 直接在这里设置正确的值
 
