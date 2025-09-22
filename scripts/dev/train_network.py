@@ -1550,6 +1550,9 @@ class NetworkTrainer:
                 if callable(self.record_training_steps) and callable(self.record_training_progress):
                     try:
                         print(f"[DEBUG] Recording metrics: model_type={self.model_type_name}, task_id={self.task_id}, progress={progress_bar.n}/{progress_bar.total}")
+                        print(f"[DEBUG] record_training_steps function: {self.record_training_steps}")
+                        print(f"[DEBUG] record_training_progress function: {self.record_training_progress}")
+                        
                         # 步数进度
                         self.record_training_steps(self.model_type_name, self.task_id, progress_bar.n, progress_bar.total)
                         step_progress_percent = (progress_bar.n / progress_bar.total) * 100
