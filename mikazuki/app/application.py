@@ -108,17 +108,21 @@ async def update_metrics(data: dict):
         from mikazuki.metrics import (
             record_training_progress,
             record_training_steps, 
-            record_training_loss
+            record_training_epochs,
+            record_training_loss,
+            record_training_iteration_time
         )
         
         model_type = data.get('model_type', 'unknown')
         task_id = data.get('task_id', 'unknown')
         progress = data.get('progress', {})
         loss = data.get('loss', {})
+        epoch = data.get('epoch', {})
         
         print(f"[DEBUG] Processing metrics: model_type={model_type}, task_id={task_id}")
         print(f"[DEBUG] Progress: {progress}")
         print(f"[DEBUG] Loss: {loss}")
+        print(f"[DEBUG] Epoch: {epoch}")
         
         # 记录步数进度
         if 'current' in progress and 'total' in progress:
@@ -127,18 +131,31 @@ async def update_metrics(data: dict):
             
         # 记录进度百分比
         if 'percent' in progress:
-            record_training_progress(model_type, task_id, 'step_based', progress['percent'])
-            print(f"[DEBUG] Recorded progress: {progress['percent']}%")
+            progress_type = 'step_based' if 'current' in progress else 'epoch_based'
+            record_training_progress(model_type, task_id, progress_type, progress['percent'])
+            print(f"[DEBUG] Recorded progress: {progress['percent']}% ({progress_type})")
+            
+        # 记录epoch进度
+        if 'current' in epoch and 'total' in epoch:
+            record_training_epochs(model_type, task_id, epoch['current'], epoch['total'])
+            print(f"[DEBUG] Recorded epochs: {epoch['current']}/{epoch['total']}")
             
         # 记录损失值
         if 'current' in loss and 'average' in loss:
             record_training_loss(model_type, task_id, loss['current'], loss['average'])
             print(f"[DEBUG] Recorded loss: current={loss['current']}, avg={loss['average']}")
             
+        # 记录迭代时间
+        if 'iteration_time' in data:
+            record_training_iteration_time(model_type, task_id, data['iteration_time'])
+            print(f"[DEBUG] Recorded iteration time: {data['iteration_time']}s")
+            
         print(f"[DEBUG] Metrics recorded successfully")
         return {"status": "success"}
     except Exception as e:
         print(f"[DEBUG] Metrics error: {e}")
         return {"status": "error", "message": str(e)}
+
+# 统一的 update_metrics 端点已处理所有类型的 metrics 数据
 
 app.mount("/", SPAStaticFiles(directory="frontend/dist", html=True), name="static")

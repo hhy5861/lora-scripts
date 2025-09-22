@@ -67,6 +67,13 @@ flux_training_loss = Gauge(
     registry=registry
 )
 
+flux_training_iteration_time = Gauge(
+    'flux_training_iteration_time',
+    'Current training iteration time in seconds',
+    ['model_type', 'task_id'],
+    registry=registry
+)
+
 
 def get_metrics() -> str:
     """获取Prometheus格式的metrics数据"""
@@ -160,6 +167,13 @@ def record_training_loss(model_type: str, task_id: str, current_loss: float, avg
             task_id=task_id,
             loss_type='average'
         ).set(avg_loss)
+
+def record_training_iteration_time(model_type: str, task_id: str, iteration_time: float):
+    """记录训练迭代时间"""
+    flux_training_iteration_time.labels(
+        model_type=model_type,
+        task_id=task_id
+    ).set(iteration_time)
 
 def schedule_cleanup(task_id: str, delay_seconds: int):
     """延迟清理任务"""

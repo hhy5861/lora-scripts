@@ -1385,7 +1385,14 @@ class NetworkTrainer:
             accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}\n")
             current_epoch.value = epoch + 1
             
-            # epoch进度已通过HTTP发送到主进程记录
+            # 记录epoch进度 - 只设置数据，不发送
+            if accelerator.is_main_process:
+                # 将epoch数据存储到实例变量中，等待统一发送
+                self.current_epoch_data = {
+                    'current': epoch,
+                    'total': num_train_epochs,
+                    'percent': ((epoch + 1) / num_train_epochs) * 100
+                }
 
             metadata["ss_epoch"] = str(epoch + 1)
 
@@ -1514,16 +1521,19 @@ class NetworkTrainer:
                 # 调试日志 - 进度条输出后
                 print(f"[DEBUG] After progress_bar.set_postfix: progress={progress_bar.n}/{progress_bar.total}")
                 
-                # 记录所有metrics - 只在主进程上发送
+                # 统一发送所有metrics数据 - 只在主进程上发送
                 if accelerator.is_main_process:
                     try:
                         import requests
+                        import time
                         
-                        # 调试信息
-                        print(f"[DEBUG] Main process - progress_bar state: n={progress_bar.n}, total={progress_bar.total}")
-                        print(f"[DEBUG] global_step={global_step}, current_loss={current_loss}, avr_loss={avr_loss}")
+                        # 计算迭代时间（从进度条获取）
+                        if hasattr(progress_bar, 'format_dict') and 'rate' in progress_bar.format_dict:
+                            iteration_time = 1.0 / progress_bar.format_dict['rate'] if progress_bar.format_dict['rate'] > 0 else 0
+                        else:
+                            iteration_time = 0
                         
-                        # 准备metrics数据
+                        # 准备统一的metrics数据
                         metrics_data = {
                             'model_type': self.model_type_name,
                             'task_id': self.task_id,
@@ -1535,25 +1545,33 @@ class NetworkTrainer:
                             'loss': {
                                 'current': current_loss,
                                 'average': avr_loss
-                            }
+                            },
+                            'iteration_time': iteration_time
                         }
                         
-                        # 发送到主进程的metrics端点
+                        # 添加epoch数据（如果存在）
+                        if hasattr(self, 'current_epoch_data'):
+                            metrics_data['epoch'] = self.current_epoch_data
+                        
+                        # 调试信息
+                        print(f"[DEBUG] Sending unified metrics: {metrics_data}")
+                        
+                        # 统一发送所有metrics数据
                         try:
                             response = requests.post('http://127.0.0.1:28000/update_metrics', 
                                                    json=metrics_data, 
                                                    timeout=1)
                             if response.status_code == 200:
-                                print(f"[DEBUG] Metrics sent successfully: {metrics_data}")
+                                print(f"[DEBUG] Unified metrics sent successfully")
                             else:
-                                print(f"[DEBUG] Metrics send failed: {response.status_code}")
+                                print(f"[DEBUG] Unified metrics send failed: {response.status_code}")
                         except Exception as e:
-                            print(f"[DEBUG] Metrics send error: {e}")
+                            print(f"[DEBUG] Unified metrics send error: {e}")
                             
                     except ImportError:
                         print(f"[DEBUG] requests module not available, skipping metrics")
                     except Exception as e:
-                        print(f"[DEBUG] Metrics error: {e}")
+                        print(f"[DEBUG] Unified metrics error: {e}")
                 else:
                     print(f"[DEBUG] Non-main process, skipping metrics")
                 
