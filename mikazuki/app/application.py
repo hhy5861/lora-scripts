@@ -99,4 +99,35 @@ async def metrics():
     """Prometheus metrics endpoint"""
     return Response(get_metrics(), media_type=CONTENT_TYPE_LATEST)
 
+@app.post("/update_metrics")
+async def update_metrics(data: dict):
+    """接收训练脚本发送的metrics数据"""
+    try:
+        from mikazuki.metrics import (
+            record_training_progress,
+            record_training_steps, 
+            record_training_loss
+        )
+        
+        model_type = data.get('model_type', 'unknown')
+        task_id = data.get('task_id', 'unknown')
+        progress = data.get('progress', {})
+        loss = data.get('loss', {})
+        
+        # 记录步数进度
+        if 'current' in progress and 'total' in progress:
+            record_training_steps(model_type, task_id, progress['current'], progress['total'])
+            
+        # 记录进度百分比
+        if 'percent' in progress:
+            record_training_progress(model_type, task_id, 'step_based', progress['percent'])
+            
+        # 记录损失值
+        if 'current' in loss and 'average' in loss:
+            record_training_loss(model_type, task_id, loss['current'], loss['average'])
+            
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 app.mount("/", SPAStaticFiles(directory="frontend/dist", html=True), name="static")

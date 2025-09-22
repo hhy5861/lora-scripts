@@ -1546,21 +1546,42 @@ class NetworkTrainer:
                 # 调试日志 - 进度条输出后
                 print(f"[DEBUG] After progress_bar.set_postfix: progress={progress_bar.n}/{progress_bar.total}")
                 
-                # 记录所有metrics - 直接使用进度条已有的值
-                if callable(self.record_training_steps) and callable(self.record_training_progress):
+                # 记录所有metrics - 通过HTTP发送到主进程
+                try:
+                    import requests
+                    import json
+                    
+                    # 准备metrics数据
+                    metrics_data = {
+                        'model_type': self.model_type_name,
+                        'task_id': self.task_id,
+                        'progress': {
+                            'current': progress_bar.n,
+                            'total': progress_bar.total,
+                            'percent': (progress_bar.n / progress_bar.total) * 100
+                        },
+                        'loss': {
+                            'current': current_loss,
+                            'average': avr_loss
+                        }
+                    }
+                    
+                    # 发送到主进程的metrics端点
                     try:
-                        print(f"[DEBUG] Recording metrics: model_type={self.model_type_name}, task_id={self.task_id}, progress={progress_bar.n}/{progress_bar.total}")
-                        print(f"[DEBUG] record_training_steps function: {self.record_training_steps}")
-                        print(f"[DEBUG] record_training_progress function: {self.record_training_progress}")
+                        response = requests.post('http://127.0.0.1:28000/update_metrics', 
+                                               json=metrics_data, 
+                                               timeout=1)
+                        if response.status_code == 200:
+                            print(f"[DEBUG] Metrics sent successfully: {metrics_data}")
+                        else:
+                            print(f"[DEBUG] Metrics send failed: {response.status_code}")
+                    except Exception as e:
+                        print(f"[DEBUG] Metrics send error: {e}")
                         
-                        # 步数进度
-                        self.record_training_steps(self.model_type_name, self.task_id, progress_bar.n, progress_bar.total)
-                        step_progress_percent = (progress_bar.n / progress_bar.total) * 100
-                        self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
-                        print(f"[DEBUG] Metrics recorded successfully")
-                    except (AttributeError, TypeError) as e:
-                        print(f"[DEBUG] Metrics recording error: {e}")
-                        pass
+                except ImportError:
+                    print(f"[DEBUG] requests module not available, skipping metrics")
+                except Exception as e:
+                    print(f"[DEBUG] Metrics error: {e}")
                 
                 if callable(self.record_training_loss):
                     try:
