@@ -57,7 +57,7 @@ flux_training_steps = Gauge(
 flux_training_loss = Gauge(
     'flux_training_loss',
     'Current training loss value',
-    ['model_type', 'task_id', 'loss_type'],
+    ['model_type', 'task_id'],
     registry=registry
 )
 
@@ -135,20 +135,12 @@ def record_training_steps(model_type: str, task_id: str, current_steps: int, tot
 
 # record_training_epochs 函数已删除
 
-def record_training_loss(model_type: str, task_id: str, current_loss: float, avg_loss: Optional[float] = None):
+def record_training_loss(model_type: str, task_id: str, avg_loss: float):
     """记录训练损失"""
     flux_training_loss.labels(
         model_type=model_type,
-        task_id=task_id,
-        loss_type='current'
-    ).set(current_loss)
-    
-    if avg_loss is not None:
-        flux_training_loss.labels(
-            model_type=model_type,
-            task_id=task_id,
-            loss_type='average'
-        ).set(avg_loss)
+        task_id=task_id
+    ).set(avg_loss)
 
 def record_training_iteration_time(model_type: str, task_id: str, iteration_time: float):
     """记录训练迭代时间"""

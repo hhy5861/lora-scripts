@@ -1527,17 +1527,10 @@ class NetworkTrainer:
                         print(f"[DEBUG] progress_bar.format_dict: {progress_bar.format_dict}")
                         print(f"[DEBUG] progress_bar.__dict__: {progress_bar.__dict__}")
                         
-                        # 从进度条格式化字符串中提取迭代时间
+                        # 从进度条获取迭代时间
                         iteration_time = 0
-                        if hasattr(progress_bar, 'format_dict') and 'rate' in progress_bar.format_dict and progress_bar.format_dict['rate'] is not None:
-                            # tqdm 的 rate 就是每秒处理的步数，取倒数就是每步的时间
-                            rate = progress_bar.format_dict['rate']
-                            print(f"[DEBUG] rate: {rate}")
-                            if rate > 0:
-                                iteration_time = 1.0 / rate
-                                print(f"[DEBUG] calculated iteration_time: {iteration_time}")
-                        else:
-                            print(f"[DEBUG] rate not available or None")
+                        if hasattr(progress_bar, 'format_dict') and 'elapsed' in progress_bar.format_dict:
+                            iteration_time = progress_bar.format_dict['elapsed']
                         
                         # 准备统一的metrics数据
                         metrics_data = {
@@ -1549,7 +1542,6 @@ class NetworkTrainer:
                                 'percent': (progress_bar.n / progress_bar.total) * 100
                             },
                             'loss': {
-                                'current': current_loss,
                                 'average': avr_loss
                             },
                             'iteration_time': iteration_time
