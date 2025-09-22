@@ -1520,12 +1520,7 @@ class NetworkTrainer:
                         import requests
                         
                         # 调试 progress_bar 对象
-                        print(f"[DEBUG] progress_bar type: {type(progress_bar)}")
-                        print(f"[DEBUG] progress_bar dir: {[attr for attr in dir(progress_bar) if not attr.startswith('_')]}")
-                        print(f"[DEBUG] progress_bar.n: {progress_bar.n}")
-                        print(f"[DEBUG] progress_bar.total: {progress_bar.total}")
                         print(f"[DEBUG] progress_bar.format_dict: {progress_bar.format_dict}")
-                        print(f"[DEBUG] progress_bar.__dict__: {progress_bar.__dict__}")
                         
                         # 从进度条获取迭代时间
                         iteration_time = 0
