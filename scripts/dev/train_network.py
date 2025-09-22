@@ -1519,14 +1519,25 @@ class NetworkTrainer:
                     try:
                         import requests
                         
+                        # 调试 progress_bar 对象
+                        print(f"[DEBUG] progress_bar type: {type(progress_bar)}")
+                        print(f"[DEBUG] progress_bar dir: {[attr for attr in dir(progress_bar) if not attr.startswith('_')]}")
+                        print(f"[DEBUG] progress_bar.n: {progress_bar.n}")
+                        print(f"[DEBUG] progress_bar.total: {progress_bar.total}")
+                        print(f"[DEBUG] progress_bar.format_dict: {progress_bar.format_dict}")
+                        print(f"[DEBUG] progress_bar.__dict__: {progress_bar.__dict__}")
+                        
                         # 从进度条格式化字符串中提取迭代时间
-                        # 进度条格式: steps: 9%|▊ | 3/35 [02:23<25:34, 47.96s/it, avr_loss=0.225]
                         iteration_time = 0
                         if hasattr(progress_bar, 'format_dict') and 'rate' in progress_bar.format_dict and progress_bar.format_dict['rate'] is not None:
                             # tqdm 的 rate 就是每秒处理的步数，取倒数就是每步的时间
                             rate = progress_bar.format_dict['rate']
+                            print(f"[DEBUG] rate: {rate}")
                             if rate > 0:
                                 iteration_time = 1.0 / rate
+                                print(f"[DEBUG] calculated iteration_time: {iteration_time}")
+                        else:
+                            print(f"[DEBUG] rate not available or None")
                         
                         # 准备统一的metrics数据
                         metrics_data = {
