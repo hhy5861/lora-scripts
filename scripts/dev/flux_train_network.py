@@ -558,10 +558,13 @@ class FluxNetworkTrainer(train_network.NetworkTrainer):
         # 记录步数进度metrics
         if callable(self.record_training_steps) and callable(self.record_training_progress):
             try:
+                print(f"[DEBUG] step_logging called: global_step={global_step}, max_steps={self.max_train_steps}")
                 self.record_training_steps(self.model_type_name, self.task_id, global_step, self.max_train_steps)
                 step_progress_percent = (global_step / self.max_train_steps) * 100
                 self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
-            except (AttributeError, TypeError):
+                print(f"[DEBUG] metrics recorded: {step_progress_percent}%")
+            except (AttributeError, TypeError) as e:
+                print(f"[DEBUG] step_logging error: {e}")
                 pass
 
     def epoch_logging(self, accelerator, logs: dict, global_step: int, epoch: int):
