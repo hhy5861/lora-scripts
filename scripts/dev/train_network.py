@@ -1469,17 +1469,8 @@ class NetworkTrainer:
 
                 # Checks if the accelerator has performed an optimization step behind the scenes
                 if accelerator.sync_gradients:
-                    # 调试日志 - 进度条更新前
-                    print(f"[DEBUG] Before progress_bar.update(1): progress={progress_bar.n}/{progress_bar.total}")
-                    print(f"[DEBUG] model_type_name={self.model_type_name}, task_id={self.task_id}")
-                    
                     progress_bar.update(1)
                     global_step += 1
-                    
-                    # 调试日志 - 进度条更新后
-                    print(f"[DEBUG] After progress_bar.update(1): progress={progress_bar.n}/{progress_bar.total}")
-                    
-                    # 步数进度已通过HTTP发送到主进程记录
 
                     optimizer_eval_fn()
                     self.sample_images(

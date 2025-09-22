@@ -71,7 +71,7 @@ class Task:
         self.status = TaskStatus.RUNNING
         self.process = subprocess.Popen(self.command, env=self.environ)
         # 记录训练进行中metrics
-        record_training_running(self.model_type, self.task_id)
+        record_training_running(self.model_type)
 
     def terminate(self):
         try:

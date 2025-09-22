@@ -115,19 +115,19 @@ async def update_metrics(data: dict):
         
         # 记录步数进度
         if 'current' in progress and 'total' in progress:
-            record_training_steps(model_type, task_id, progress['current'], progress['total'])
+            record_training_steps(model_type, progress['current'], progress['total'])
             
         # 记录进度百分比
         if 'percent' in progress:
-            record_training_progress(model_type, task_id, 'step_based', progress['percent'])
+            record_training_progress(model_type, 'step_based', progress['percent'])
             
         # 记录损失值
         if 'average' in loss:
-            record_training_loss(model_type, task_id, loss['average'])
+            record_training_loss(model_type, loss['average'])
             
         # 记录迭代时间
         if 'iteration_time' in data:
-            record_training_iteration_time(model_type, task_id, data['iteration_time'])
+            record_training_iteration_time(model_type, data['iteration_time'])
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "message": str(e)}

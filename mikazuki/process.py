@@ -60,7 +60,7 @@ def run_train(toml_path: str,
     customize_env["TRAINING_TASK_ID"] = task.task_id
 
     # 记录训练开始metrics
-    record_training_start(model_type, task.task_id)
+    record_training_start(model_type)
 
     def _run():
         try:
@@ -69,15 +69,15 @@ def run_train(toml_path: str,
             if result.returncode != 0:
                 log.error(f"Training failed / 训练失败")
                 # 记录训练失败metrics
-                record_training_failed(model_type, task.task_id, "return_code_error")
+                record_training_failed(model_type, "return_code_error")
             else:
                 log.info(f"Training finished / 训练完成")
                 # 记录训练完成metrics
-                record_training_completed(model_type, task.task_id)
+                record_training_completed(model_type)
         except Exception as e:
             log.error(f"An error occurred when training / 训练出现致命错误: {e}")
             # 记录训练异常metrics
-            record_training_failed(model_type, task.task_id, "exception")
+            record_training_failed(model_type, "exception")
 
     coro = asyncio.to_thread(_run)
     asyncio.create_task(coro)
