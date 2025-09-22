@@ -1514,41 +1514,48 @@ class NetworkTrainer:
                 # 调试日志 - 进度条输出后
                 print(f"[DEBUG] After progress_bar.set_postfix: progress={progress_bar.n}/{progress_bar.total}")
                 
-                # 记录所有metrics - 通过HTTP发送到主进程
-                try:
-                    import requests
-                    
-                    # 准备metrics数据
-                    metrics_data = {
-                        'model_type': self.model_type_name,
-                        'task_id': self.task_id,
-                        'progress': {
-                            'current': progress_bar.n,
-                            'total': progress_bar.total,
-                            'percent': (progress_bar.n / progress_bar.total) * 100
-                        },
-                        'loss': {
-                            'current': current_loss,
-                            'average': avr_loss
-                        }
-                    }
-                    
-                    # 发送到主进程的metrics端点
+                # 记录所有metrics - 只在主进程上发送
+                if accelerator.is_main_process:
                     try:
-                        response = requests.post('http://127.0.0.1:28000/update_metrics', 
-                                               json=metrics_data, 
-                                               timeout=1)
-                        if response.status_code == 200:
-                            print(f"[DEBUG] Metrics sent successfully: {metrics_data}")
-                        else:
-                            print(f"[DEBUG] Metrics send failed: {response.status_code}")
-                    except Exception as e:
-                        print(f"[DEBUG] Metrics send error: {e}")
+                        import requests
                         
-                except ImportError:
-                    print(f"[DEBUG] requests module not available, skipping metrics")
-                except Exception as e:
-                    print(f"[DEBUG] Metrics error: {e}")
+                        # 调试信息
+                        print(f"[DEBUG] Main process - progress_bar state: n={progress_bar.n}, total={progress_bar.total}")
+                        print(f"[DEBUG] global_step={global_step}, current_loss={current_loss}, avr_loss={avr_loss}")
+                        
+                        # 准备metrics数据
+                        metrics_data = {
+                            'model_type': self.model_type_name,
+                            'task_id': self.task_id,
+                            'progress': {
+                                'current': progress_bar.n,
+                                'total': progress_bar.total,
+                                'percent': (progress_bar.n / progress_bar.total) * 100
+                            },
+                            'loss': {
+                                'current': current_loss,
+                                'average': avr_loss
+                            }
+                        }
+                        
+                        # 发送到主进程的metrics端点
+                        try:
+                            response = requests.post('http://127.0.0.1:28000/update_metrics', 
+                                                   json=metrics_data, 
+                                                   timeout=1)
+                            if response.status_code == 200:
+                                print(f"[DEBUG] Metrics sent successfully: {metrics_data}")
+                            else:
+                                print(f"[DEBUG] Metrics send failed: {response.status_code}")
+                        except Exception as e:
+                            print(f"[DEBUG] Metrics send error: {e}")
+                            
+                    except ImportError:
+                        print(f"[DEBUG] requests module not available, skipping metrics")
+                    except Exception as e:
+                        print(f"[DEBUG] Metrics error: {e}")
+                else:
+                    print(f"[DEBUG] Non-main process, skipping metrics")
                 
                 # 损失值已通过HTTP发送到主进程记录
 
