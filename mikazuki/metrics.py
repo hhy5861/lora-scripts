@@ -178,10 +178,16 @@ def cleanup_task_metrics(task_id: str):
     # 清理所有相关指标
     for metric in [flux_training_status, flux_training_progress_percent, 
                    flux_training_steps, flux_training_epochs, flux_training_loss]:
-        # 获取所有标签组合
-        for labels in metric._metrics.keys():
-            if 'task_id' in labels and labels['task_id'] == task_id:
-                metric.remove(*[labels.get(label, '') for label in metric._labelnames])
+        try:
+            # 获取所有标签组合
+            for labels in list(metric._metrics.keys()):
+                if 'task_id' in labels and labels['task_id'] == task_id:
+                    # 构建标签值列表
+                    label_values = [labels.get(label, '') for label in metric._labelnames]
+                    metric.remove(*label_values)
+        except (AttributeError, KeyError) as e:
+            # 忽略清理错误，不影响主程序
+            pass
 
 def cleanup_old_metrics(max_age_hours: int = None):
     """清理超过指定时间的旧指标"""

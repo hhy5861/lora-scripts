@@ -32,9 +32,7 @@ logger = logging.getLogger(__name__)
 
 # 添加metrics支持
 def setup_metrics():
-    """设置Prometheus metrics，如果可用的话"""
     try:
-        # 添加项目根目录到Python路径
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         if project_root not in sys.path:
             sys.path.insert(0, project_root)
@@ -47,7 +45,6 @@ def setup_metrics():
         )
         return record_training_progress, record_training_steps, record_training_epochs, record_training_loss
     except ImportError:
-        # 如果metrics模块不可用，返回空函数
         def noop(*args, **kwargs):
             pass
         return noop, noop, noop, noop
@@ -63,8 +60,6 @@ class FluxNetworkTrainer(train_network.NetworkTrainer):
         
         # 设置metrics
         self.record_training_progress, self.record_training_steps, self.record_training_epochs, self.record_training_loss = setup_metrics()
-        
-        # 获取task_id用于metrics
         self.task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
         self.model_type_name = 'flux-lora'
 
@@ -551,54 +546,10 @@ class FluxNetworkTrainer(train_network.NetworkTrainer):
         return flux
 
     def train(self, args):
-        """重写train方法，添加metrics支持"""
         # 设置训练参数用于metrics
         self.max_train_steps = getattr(args, 'max_train_steps', 1000)
         self.num_train_epochs = getattr(args, 'num_train_epochs', 10)
-        
-        # 调用父类的train方法
         super().train(args)
-
-    def step_logging(self, accelerator, logs: dict, global_step: int, epoch: int):
-        """重写步数日志方法，添加metrics记录"""
-        # 调用父类方法
-        super().step_logging(accelerator, logs, global_step, epoch)
-        
-        # 记录步数进度metrics
-        if hasattr(self, 'record_training_steps') and hasattr(self, 'task_id'):
-            # 从args获取max_train_steps
-            max_steps = getattr(self, 'max_train_steps', 1000)  # 默认值
-            self.record_training_steps(self.model_type_name, self.task_id, global_step, max_steps)
-            
-            # 计算步数完成度
-            step_progress_percent = (global_step / max_steps) * 100
-            self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
-
-    def epoch_logging(self, accelerator, logs: dict, global_step: int, epoch: int):
-        """重写epoch日志方法，添加metrics记录"""
-        # 调用父类方法
-        super().epoch_logging(accelerator, logs, global_step, epoch)
-        
-        # 记录epoch进度metrics
-        if hasattr(self, 'record_training_epochs') and hasattr(self, 'task_id'):
-            # 从args获取num_train_epochs
-            max_epochs = getattr(self, 'num_train_epochs', 10)  # 默认值
-            self.record_training_epochs(self.model_type_name, self.task_id, epoch, max_epochs)
-            
-            # 计算epoch完成度
-            epoch_progress_percent = ((epoch + 1) / max_epochs) * 100
-            self.record_training_progress(self.model_type_name, self.task_id, 'epoch_based', epoch_progress_percent)
-
-    def generate_step_logs(self, args, current_loss, avr_loss, lr_scheduler, lr_descriptions, optimizer=None, keys_scaled=None, mean_norm=None, maximum_norm=None, mean_grad_norm=None, mean_combined_norm=None):
-        """重写步数日志生成方法，添加损失值metrics记录"""
-        # 调用父类方法
-        logs = super().generate_step_logs(args, current_loss, avr_loss, lr_scheduler, lr_descriptions, optimizer, keys_scaled, mean_norm, maximum_norm, mean_grad_norm, mean_combined_norm)
-        
-        # 记录损失值metrics
-        if hasattr(self, 'record_training_loss') and hasattr(self, 'task_id'):
-            self.record_training_loss(self.model_type_name, self.task_id, current_loss, avr_loss)
-        
-        return logs
 
 
 def setup_parser() -> argparse.ArgumentParser:

@@ -54,9 +54,7 @@ from library.custom_train_functions import apply_masked_loss, add_custom_train_a
 
 # 添加metrics支持
 def setup_metrics():
-    """设置Prometheus metrics，如果可用的话"""
     try:
-        # 添加项目根目录到Python路径
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         if project_root not in sys.path:
             sys.path.insert(0, project_root)
@@ -69,7 +67,6 @@ def setup_metrics():
         )
         return record_training_progress, record_training_steps, record_training_epochs, record_training_loss
     except ImportError:
-        # 如果metrics模块不可用，返回空函数
         def noop(*args, **kwargs):
             pass
         return noop, noop, noop, noop
@@ -83,8 +80,6 @@ def train(args):
     
     # 设置metrics
     record_training_progress, record_training_steps, record_training_epochs, record_training_loss = setup_metrics()
-    
-    # 获取task_id用于metrics
     task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
     model_type = 'flux-finetune'
 
@@ -614,9 +609,13 @@ def train(args):
         current_epoch.value = epoch + 1
         
         # 记录epoch进度metrics
-        record_training_epochs(model_type, task_id, epoch, num_train_epochs)
-        epoch_progress_percent = ((epoch + 1) / num_train_epochs) * 100
-        record_training_progress(model_type, task_id, 'epoch_based', epoch_progress_percent)
+        if callable(record_training_epochs) and callable(record_training_progress):
+            try:
+                record_training_epochs(model_type, task_id, epoch, num_train_epochs)
+                epoch_progress_percent = ((epoch + 1) / num_train_epochs) * 100
+                record_training_progress(model_type, task_id, 'epoch_based', epoch_progress_percent)
+            except (AttributeError, TypeError):
+                pass
 
         for m in training_models:
             m.train()
@@ -739,9 +738,13 @@ def train(args):
                 global_step += 1
                 
                 # 记录步数进度metrics
-                record_training_steps(model_type, task_id, global_step, args.max_train_steps)
-                step_progress_percent = (global_step / args.max_train_steps) * 100
-                record_training_progress(model_type, task_id, 'step_based', step_progress_percent)
+                if callable(record_training_steps) and callable(record_training_progress):
+                    try:
+                        record_training_steps(model_type, task_id, global_step, args.max_train_steps)
+                        step_progress_percent = (progress_bar.n / progress_bar.total) * 100
+                        record_training_progress(model_type, task_id, 'step_based', step_progress_percent)
+                    except (AttributeError, TypeError):
+                        pass
 
                 optimizer_eval_fn()
                 flux_train_utils.sample_images(
@@ -777,7 +780,11 @@ def train(args):
             progress_bar.set_postfix(**logs)
             
             # 记录损失值metrics
-            record_training_loss(model_type, task_id, current_loss, avr_loss)
+            if callable(record_training_loss):
+                try:
+                    record_training_loss(model_type, task_id, current_loss, avr_loss)
+                except (AttributeError, TypeError):
+                    pass
 
             if global_step >= args.max_train_steps:
                 break
