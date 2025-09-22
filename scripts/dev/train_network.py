@@ -1527,8 +1527,9 @@ class NetworkTrainer:
                         import requests
                         
                         # 计算迭代时间（从进度条获取）
-                        if hasattr(progress_bar, 'format_dict') and 'rate' in progress_bar.format_dict:
-                            iteration_time = 1.0 / progress_bar.format_dict['rate'] if progress_bar.format_dict['rate'] > 0 else 0
+                        if hasattr(progress_bar, 'format_dict') and 'rate' in progress_bar.format_dict and progress_bar.format_dict['rate'] is not None:
+                            rate = progress_bar.format_dict['rate']
+                            iteration_time = 1.0 / rate if rate > 0 else 0
                         else:
                             iteration_time = 0
                         
