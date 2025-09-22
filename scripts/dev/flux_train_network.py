@@ -549,6 +549,8 @@ class FluxNetworkTrainer(train_network.NetworkTrainer):
         # 设置训练参数用于metrics
         self.max_train_steps = getattr(args, 'max_train_steps', 1000)
         self.num_train_epochs = getattr(args, 'num_train_epochs', 10)
+        self.model_type_name = 'flux-lora'
+        self.task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
         super().train(args)
     
     # metrics 记录现在直接在父类 train_network.py 中处理
