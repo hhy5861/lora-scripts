@@ -12,24 +12,7 @@ from multiprocessing import Value
 import numpy as np
 import toml
 
-# 添加metrics支持
-def setup_metrics():
-    try:
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        if project_root not in sys.path:
-            sys.path.insert(0, project_root)
-        
-        from mikazuki.metrics import (
-            record_training_progress, 
-            record_training_steps, 
-            record_training_epochs, 
-            record_training_loss
-        )
-        return record_training_progress, record_training_steps, record_training_epochs, record_training_loss
-    except ImportError:
-        def noop(*args, **kwargs):
-            pass
-        return noop, noop, noop, noop
+# metrics 现在通过HTTP发送到主进程记录，不再需要本地埋点
 
 from tqdm import tqdm
 
@@ -76,8 +59,7 @@ class NetworkTrainer:
         self.vae_scale_factor = 0.18215
         self.is_sdxl = False
         
-        # 设置metrics
-        self.record_training_progress, self.record_training_steps, self.record_training_epochs, self.record_training_loss = setup_metrics()
+        # metrics 现在通过HTTP发送到主进程记录
         self.task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
         self.model_type_name = 'sd-lora'
 
@@ -1403,14 +1385,7 @@ class NetworkTrainer:
             accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}\n")
             current_epoch.value = epoch + 1
             
-            # 记录epoch进度metrics
-            if callable(self.record_training_epochs) and callable(self.record_training_progress):
-                try:
-                    self.record_training_epochs(self.model_type_name, self.task_id, epoch, num_train_epochs)
-                    epoch_progress_percent = ((epoch + 1) / num_train_epochs) * 100
-                    self.record_training_progress(self.model_type_name, self.task_id, 'epoch_based', epoch_progress_percent)
-                except (AttributeError, TypeError):
-                    pass
+            # epoch进度已通过HTTP发送到主进程记录
 
             metadata["ss_epoch"] = str(epoch + 1)
 
@@ -1504,14 +1479,7 @@ class NetworkTrainer:
                     # 调试日志 - 进度条更新后
                     print(f"[DEBUG] After progress_bar.update(1): progress={progress_bar.n}/{progress_bar.total}")
                     
-                    # 记录步数进度metrics
-                    if callable(self.record_training_steps) and callable(self.record_training_progress):
-                        try:
-                            self.record_training_steps(self.model_type_name, self.task_id, global_step, args.max_train_steps)
-                            step_progress_percent = (progress_bar.n / progress_bar.total) * 100
-                            self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
-                        except (AttributeError, TypeError):
-                            pass
+                    # 步数进度已通过HTTP发送到主进程记录
 
                     optimizer_eval_fn()
                     self.sample_images(
@@ -1549,7 +1517,6 @@ class NetworkTrainer:
                 # 记录所有metrics - 通过HTTP发送到主进程
                 try:
                     import requests
-                    import json
                     
                     # 准备metrics数据
                     metrics_data = {
@@ -1583,12 +1550,7 @@ class NetworkTrainer:
                 except Exception as e:
                     print(f"[DEBUG] Metrics error: {e}")
                 
-                if callable(self.record_training_loss):
-                    try:
-                        # 损失值
-                        self.record_training_loss(self.model_type_name, self.task_id, current_loss, avr_loss)
-                    except (AttributeError, TypeError):
-                        pass
+                # 损失值已通过HTTP发送到主进程记录
 
                 if is_tracking:
                     logs = self.generate_step_logs(
