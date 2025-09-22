@@ -550,6 +550,45 @@ class FluxNetworkTrainer(train_network.NetworkTrainer):
         self.max_train_steps = getattr(args, 'max_train_steps', 1000)
         self.num_train_epochs = getattr(args, 'num_train_epochs', 10)
         super().train(args)
+    
+    def step_logging(self, accelerator, logs: dict, global_step: int, epoch: int):
+        """重写步数日志方法，添加metrics记录"""
+        super().step_logging(accelerator, logs, global_step, epoch)
+        
+        # 记录步数进度metrics
+        if callable(self.record_training_steps) and callable(self.record_training_progress):
+            try:
+                self.record_training_steps(self.model_type_name, self.task_id, global_step, self.max_train_steps)
+                step_progress_percent = (global_step / self.max_train_steps) * 100
+                self.record_training_progress(self.model_type_name, self.task_id, 'step_based', step_progress_percent)
+            except (AttributeError, TypeError):
+                pass
+
+    def epoch_logging(self, accelerator, logs: dict, global_step: int, epoch: int):
+        """重写epoch日志方法，添加metrics记录"""
+        super().epoch_logging(accelerator, logs, global_step, epoch)
+        
+        # 记录epoch进度metrics
+        if callable(self.record_training_epochs) and callable(self.record_training_progress):
+            try:
+                self.record_training_epochs(self.model_type_name, self.task_id, epoch, self.num_train_epochs)
+                epoch_progress_percent = ((epoch + 1) / self.num_train_epochs) * 100
+                self.record_training_progress(self.model_type_name, self.task_id, 'epoch_based', epoch_progress_percent)
+            except (AttributeError, TypeError):
+                pass
+
+    def generate_step_logs(self, args, current_loss, avr_loss, lr_scheduler, lr_descriptions, optimizer=None, keys_scaled=None, mean_norm=None, maximum_norm=None, mean_grad_norm=None, mean_combined_norm=None):
+        """重写步数日志生成方法，添加损失值metrics记录"""
+        logs = super().generate_step_logs(args, current_loss, avr_loss, lr_scheduler, lr_descriptions, optimizer, keys_scaled, mean_norm, maximum_norm, mean_grad_norm, mean_combined_norm)
+        
+        # 记录损失值metrics
+        if callable(self.record_training_loss):
+            try:
+                self.record_training_loss(self.model_type_name, self.task_id, current_loss, avr_loss)
+            except (AttributeError, TypeError):
+                pass
+        
+        return logs
 
 
 def setup_parser() -> argparse.ArgumentParser:
