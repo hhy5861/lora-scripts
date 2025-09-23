@@ -1512,9 +1512,6 @@ class NetworkTrainer:
                         remaining_time = 0
                         if hasattr(progress_bar, 'format_dict'):
                             format_dict = progress_bar.format_dict
-                            # 调试：打印所有可用的字段
-                            print(f"[DEBUG] tqdm format_dict keys: {list(format_dict.keys())}")
-                            print(f"[DEBUG] tqdm format_dict: {format_dict}")
                             
                             # 计算迭代时间
                             if 'elapsed' in format_dict and 'n' in format_dict:
@@ -1523,12 +1520,12 @@ class NetworkTrainer:
                                 if n > 0 and elapsed > 0:
                                     iteration_time = elapsed / n
                             
-                            # 尝试不同的剩余时间字段名
-                            for key in ['remaining', 'eta', 'eta_seconds', 'remaining_seconds']:
-                                if key in format_dict:
-                                    remaining_time = format_dict[key]
-                                    print(f"[DEBUG] Found remaining time in '{key}': {remaining_time}")
-                                    break
+                            # 计算剩余时间：剩余步数 × 平均每步时间
+                            if 'n' in format_dict and 'total' in format_dict and iteration_time > 0:
+                                n = format_dict['n']
+                                total = format_dict['total']
+                                remaining_steps = total - n
+                                remaining_time = remaining_steps * iteration_time
                         
                         # 准备统一的metrics数据
                         metrics_data = {
