@@ -56,8 +56,7 @@ def run_train(toml_path: str,
     if not (task := tm.create_task(args, customize_env, model_type)):
         return APIResponse(status="error", message="Failed to create task / 无法创建训练任务")
 
-    # 设置task_id环境变量，供训练脚本使用
-    customize_env["TRAINING_TASK_ID"] = task.task_id
+    # task_id环境变量不再需要，因为metrics不再使用task_id
 
     # 记录训练开始metrics
     record_training_start(model_type)

@@ -60,7 +60,6 @@ class NetworkTrainer:
         self.is_sdxl = False
         
         # metrics 现在通过HTTP发送到主进程记录
-        self.task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
         self.model_type_name = 'sd-lora'
 
     # TODO 他のスクリプトと共通化する
@@ -1513,22 +1512,26 @@ class NetworkTrainer:
                         if hasattr(progress_bar, 'format_dict'):
                             format_dict = progress_bar.format_dict
                             
-                            # 计算迭代时间
+                            # 计算迭代时间：elapsed / n
                             if 'elapsed' in format_dict and 'n' in format_dict:
                                 elapsed = format_dict['elapsed']
                                 n = format_dict['n']
                                 if n > 0 and elapsed > 0:
                                     iteration_time = elapsed / n
                             
-                            # 使用tqdm的标准方法计算剩余时间：剩余步数 / 每秒迭代次数
+                            # 计算剩余时间：使用tqdm的标准方法 - 剩余步数 / 每秒迭代次数
                             if 'rate' in format_dict and format_dict['rate'] and format_dict['rate'] > 0:
                                 remaining_steps = progress_bar.total - progress_bar.n
                                 remaining_time = remaining_steps / format_dict['rate']
+                            else:
+                                # 备用方法：使用迭代时间计算
+                                if iteration_time > 0:
+                                    remaining_steps = progress_bar.total - progress_bar.n
+                                    remaining_time = remaining_steps * iteration_time
                         
                         # 准备统一的metrics数据
                         metrics_data = {
                             'model_type': self.model_type_name,
-                            'task_id': self.task_id,
                             'progress': {
                                 'current': progress_bar.n,
                                 'total': progress_bar.total,

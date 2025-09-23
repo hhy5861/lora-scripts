@@ -110,7 +110,6 @@ async def update_metrics(data: dict):
     try:
         
         model_type = data.get('model_type', 'unknown')
-        task_id = data.get('task_id', 'unknown')
         progress = data.get('progress', {})
         loss = data.get('loss', {})
         

@@ -63,7 +63,6 @@ def train(args):
     setup_logging(args, reset=True)
     
     # metrics现在通过HTTP发送，不再需要本地埋点
-    task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
     model_type = 'flux-finetune'
 
     # temporary: backward compatibility for deprecated options. remove in the future

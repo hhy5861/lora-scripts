@@ -59,7 +59,6 @@ class FluxNetworkTrainer(train_network.NetworkTrainer):
         self.model_type: Optional[str] = None
         
         # 设置metrics - 使用父类的metrics函数，确保使用相同的registry
-        self.task_id = os.environ.get('TRAINING_TASK_ID', 'unknown')
         self.model_type_name = 'flux-lora'  # 直接在这里设置正确的值
 
     def assert_extra_args(
