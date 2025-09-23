@@ -1520,12 +1520,10 @@ class NetworkTrainer:
                                 if n > 0 and elapsed > 0:
                                     iteration_time = elapsed / n
                             
-                            # 计算剩余时间：剩余步数 × 平均每步时间
-                            if 'n' in format_dict and 'total' in format_dict and iteration_time > 0:
-                                n = format_dict['n']
-                                total = format_dict['total']
-                                remaining_steps = total - n
-                                remaining_time = remaining_steps * iteration_time
+                            # 使用tqdm的标准方法计算剩余时间：剩余步数 / 每秒迭代次数
+                            if 'rate' in format_dict and format_dict['rate'] and format_dict['rate'] > 0:
+                                remaining_steps = progress_bar.total - progress_bar.n
+                                remaining_time = remaining_steps / format_dict['rate']
                         
                         # 准备统一的metrics数据
                         metrics_data = {
