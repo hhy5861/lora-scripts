@@ -1513,9 +1513,6 @@ class NetworkTrainer:
                         if hasattr(progress_bar, 'format_dict'):
                             format_dict = progress_bar.format_dict
                             
-                            # 调试：检查所有可能的属性
-                            print(f"[DEBUG] progress_bar attributes: {[attr for attr in dir(progress_bar) if not attr.startswith('_')]}")
-                            
                             # 计算迭代时间
                             if 'elapsed' in format_dict and 'n' in format_dict:
                                 elapsed = format_dict['elapsed']
@@ -1523,21 +1520,12 @@ class NetworkTrainer:
                                 if n > 0 and elapsed > 0:
                                     iteration_time = elapsed / n
                             
-                            # 尝试获取tqdm内部计算的剩余时间
-                            if hasattr(progress_bar, 'eta'):
-                                remaining_time = progress_bar.eta
-                                print(f"[DEBUG] Found eta attribute: {remaining_time}")
-                            elif hasattr(progress_bar, 'remaining'):
-                                remaining_time = progress_bar.remaining
-                                print(f"[DEBUG] Found remaining attribute: {remaining_time}")
-                            else:
-                                # 计算剩余时间：剩余步数 × 平均每步时间
-                                if 'n' in format_dict and 'total' in format_dict and iteration_time > 0:
-                                    n = format_dict['n']
-                                    total = format_dict['total']
-                                    remaining_steps = total - n
-                                    remaining_time = remaining_steps * iteration_time
-                                    print(f"[DEBUG] Calculated remaining_time: {remaining_time}")
+                            # 计算剩余时间：剩余步数 × 平均每步时间
+                            if 'n' in format_dict and 'total' in format_dict and iteration_time > 0:
+                                n = format_dict['n']
+                                total = format_dict['total']
+                                remaining_steps = total - n
+                                remaining_time = remaining_steps * iteration_time
                         
                         # 准备统一的metrics数据
                         metrics_data = {
